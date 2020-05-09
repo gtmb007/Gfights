@@ -8,7 +8,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.env.Environment;
 
-import com.gautam.model.User;
 import com.gautam.service.AdminService;
 
 @SpringBootApplication
