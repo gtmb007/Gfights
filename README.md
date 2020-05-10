@@ -7,7 +7,7 @@ Gflights is a RESTful Web Service built using SpringBoot with the following func
 4.) Remove Flight <br/>
 ###### User SignUp <br/>
 ###### User SignIn <br/>
-1.) User Details along with all bookings(with passanger details) <br/>
+1.) User Details along with all bookings(including passanger details) <br/>
 2.) Update User Name <br/>
 3.) Update User Password <br/>
 4.) Recharge User Wallet <br/>
