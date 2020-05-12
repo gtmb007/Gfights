@@ -1,5 +1,6 @@
 package com.gautam.dao;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -9,8 +10,10 @@ import javax.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import com.gautam.entity.BookingEntity;
+import com.gautam.entity.PassengerEntity;
 import com.gautam.entity.UserEntity;
 import com.gautam.model.Booking;
+import com.gautam.model.Passenger;
 import com.gautam.model.User;
 
 @Repository(value="userDAO")
@@ -52,7 +55,27 @@ public class UserDAOImpl implements UserDAO {
 			Set<Booking> bookings=new LinkedHashSet<Booking>();
 			for(BookingEntity bookingEntity : bookingEntities) {
 				Booking booking=new Booking();
-				//TODO
+				booking.setBookingId(bookingEntity.getBookingId());
+				booking.setFlightId(bookingEntity.getFlightId());
+				booking.setFlightName(bookingEntity.getFlightName());
+				booking.setSource(bookingEntity.getSource());
+				booking.setDeparture(bookingEntity.getDeparture());
+				booking.setDestination(bookingEntity.getDestination());
+				booking.setArrival(bookingEntity.getArrival());
+				booking.setDoj(bookingEntity.getDoj());
+				booking.setBookedOn(bookingEntity.getBookedOn());
+				booking.setAmount(bookingEntity.getAmount());
+				Set<PassengerEntity> pEntities=bookingEntity.getPassengers();
+				Set<Passenger> passengers=new HashSet<Passenger>();
+				for(PassengerEntity pEntity : pEntities) {
+					Passenger p=new Passenger();
+					p.setPassengerId(pEntity.getPassengerId());
+					p.setfName(pEntity.getfName());
+					p.setlName(pEntity.getlName());
+					p.setSeat(pEntity.getSeat());
+					passengers.add(p);
+				}
+				booking.setPassengers(passengers);
 				bookings.add(booking);
 			}
 			user.setBookings(bookings);

@@ -1,5 +1,10 @@
 package com.gautam;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -10,8 +15,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.env.Environment;
 
 import com.gautam.model.Booking;
+import com.gautam.model.Flight;
+import com.gautam.model.Passenger;
 import com.gautam.model.User;
 import com.gautam.service.AdminService;
+import com.gautam.service.BookingService;
+import com.gautam.service.FlightService;
 import com.gautam.service.UserService;
 
 @SpringBootApplication
@@ -27,6 +36,12 @@ public class GflightsApplication implements CommandLineRunner {
 	
 	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private FlightService flightService;
+	
+	@Autowired
+	private BookingService bookingService;
 
 	public static void main(String[] args) {
 		SpringApplication.run(GflightsApplication.class, args);
@@ -53,11 +68,11 @@ public class GflightsApplication implements CommandLineRunner {
 			id=adminService.validateAdmin(id, password);
 			System.out.println("\n"+environment.getProperty("API.ADMIN_LOGIN_SUCCESS")+id);
 			while(true) {
-				System.out.println("\nPlease Enter...\n1.) Add Flight\n2.) Get Flight\n3.) Update Flight\n4.) Remove Flight\n0.) Log Out");
+				System.out.println("\nPlease Enter...\n1.) Add Flight\n2.) Get Flights\n3.) Update Flight\n4.) Remove Flight\n0.) Log Out");
 				int opt=sc.nextInt();
 				if(opt==0) return;
 				else if(opt==1) addFlight();
-				else if(opt==2) getFlight();
+				else if(opt==2) getFlights();
 				else if(opt==3) updateFlight();
 				else if(opt==4) removeFlight();
 				else System.out.println("\n"+environment.getProperty("UI.INVALID_OPTION"));
@@ -68,11 +83,48 @@ public class GflightsApplication implements CommandLineRunner {
 	}
 	
 	public void addFlight() {
-		//TODO
+		Flight flight=new Flight();
+		System.out.print("\nEnter Flight Id: ");
+		flight.setFlightId(sc.next());
+		System.out.print("Enter Flight Name: ");
+		flight.setFlightName(sc.next());
+		LocalDate today=LocalDate.now();
+		Map<LocalDate, Integer> seatMap=new LinkedHashMap<LocalDate, Integer>();
+		for(int i=0;i<365;i++) {
+			seatMap.put(today.plusDays(i), 150);
+		}
+		flight.setSeatMap(seatMap);
+		System.out.print("Enter Base Fare: ");
+		flight.setBaseFare(sc.nextDouble());
+		try {
+			String flightId=flightService.addFlight(flight);
+			System.out.println("\n"+environment.getProperty("API.FLIGHT_ADDED")+flightId);
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
-	public void getFlight() {
-		//TODO
+	public void getFlights() {
+		try {
+			Set<Flight> flights=flightService.getFlights();
+			int i=1;
+			for(Flight flight : flights) {
+				System.out.println("\nFlight"+i+" Details...");
+				System.out.println("Flight Id: "+flight.getFlightId());
+				System.out.println("Flight Name: "+flight.getFlightName());
+				System.out.println("Available Seats: ");
+				Map<LocalDate, Integer> seatMap=flight.getSeatMap();
+				if(seatMap!=null) {
+					for(LocalDate key : seatMap.keySet()) {
+						System.out.println(key+" "+seatMap.get(key));
+					}
+				}
+				System.out.println("Base Fare: "+flight.getBaseFare());
+				i++;
+			}
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
 	public void updateFlight() {
@@ -143,14 +195,32 @@ public class GflightsApplication implements CommandLineRunner {
 		try {
 			User user=userService.getUser(id);
 			System.out.println("\nUser Details...");
-			System.out.println("Id: "+user.getUserId());
-			System.out.println("Name: "+user.getFirstName()+" "+user.getLastName());
+			System.out.println("User Id: "+user.getUserId());
+			System.out.println("User Name: "+user.getFirstName()+" "+user.getLastName());
 			System.out.println("Wallet Balance: "+user.getWalletBalance());
 			Set<Booking> bookings=user.getBookings();
 			int i=1;
 			for(Booking booking : bookings) {
 				System.out.println("\nBooking"+i+"...");
-				//TODO
+				System.out.println("Booking Id: "+booking.getBookingId());
+				System.out.println("Flight Id: "+booking.getFlightId());
+				System.out.println("Flight Name: "+booking.getFlightName());
+				System.out.println("Source: "+booking.getSource());
+				System.out.println("Departure Time: "+booking.getDeparture());
+				System.out.println("Destination: "+booking.getDestination());
+				System.out.println("Arrival Time: "+booking.getArrival());
+				System.out.println("Date of Journey: "+booking.getDoj());
+				System.out.println("Booked On: "+booking.getBookedOn());
+				System.out.println("Amount: "+booking.getAmount());
+				Set<Passenger> passengers=booking.getPassengers();
+				int j=1;
+				for(Passenger p : passengers) {
+					System.out.println("\nPassenger"+j+"...");
+					System.out.println("Passenger Id: "+p.getPassengerId());
+					System.out.println("Passenger Name: "+p.getfName()+" "+p.getlName());
+					System.out.println("Seat No: "+p.getSeat());
+					j++;
+				}
 				i++;
 			}
 		} catch(Exception e) {
@@ -195,18 +265,89 @@ public class GflightsApplication implements CommandLineRunner {
 	
 	public void searchFlight() {
 		//TODO
+		try {
+			Set<Flight> flights=flightService.getFlights();
+			int i=1;
+			for(Flight flight : flights) {
+				System.out.println("\nFlight"+i+" Details...");
+				System.out.println("Flight Id: "+flight.getFlightId());
+				System.out.println("Flight Name: "+flight.getFlightName());
+				System.out.println("Available Seats: ");
+				Map<LocalDate, Integer> seatMap=flight.getSeatMap();
+				if(seatMap!=null) {
+					for(LocalDate key : seatMap.keySet()) {
+						System.out.println(key+" "+seatMap.get(key));
+					}
+				}
+				System.out.println("Base Fare: "+flight.getBaseFare());
+				i++;
+			}
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
 	public void bookFlight(String userId) {
-		//TODO
+		System.out.print("\nEnter Source: ");
+		String source=sc.next();
+		System.out.print("Enter Destination: ");
+		String destination=sc.next();
+		System.out.print("Enter Date of Journey: ");
+		String s=sc.next();
+		DateTimeFormatter formatter=DateTimeFormatter.ofPattern("dd/MM/yy");
+		LocalDate doj= LocalDate.parse(s, formatter);
+		System.out.print("Enter Flight Id: ");
+		String flightId=sc.next();
+		System.out.print("Enter Number of Passangers: ");
+		int n=sc.nextInt();
+		Set<Passenger> passengers=new LinkedHashSet<Passenger>();
+		for(int i=1;i<=n;i++) {
+			Passenger passenger=new Passenger();
+			System.out.print("Enter Passanger"+i+" First Name: ");
+			passenger.setfName(sc.next());
+			System.out.print("Enter Passanger"+i+" Last Name: ");
+			passenger.setlName(sc.next());
+			passengers.add(passenger);
+		}
+		try {
+			Integer bookingId=bookingService.bookFlight(userId, source, destination, doj, flightId, passengers);
+			System.out.println("\n"+environment.getProperty("API.BOOKING_SUCCESS")+bookingId);
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
 	public void updateBooking(String userId) {
-		//TODO
+		System.out.print("\nEnter Booking Id: ");
+		Integer bookingId=sc.nextInt();
+		System.out.print("Enter Number of Passangers: ");
+		int n=sc.nextInt();
+		Set<Passenger> passengers=new LinkedHashSet<Passenger>();
+		for(int i=1;i<=n;i++) {
+			Passenger passenger=new Passenger();
+			System.out.print("Enter Passanger"+i+" First Name: ");
+			passenger.setfName(sc.next());
+			System.out.print("Enter Passanger"+i+" Last Name: ");
+			passenger.setlName(sc.next());
+			passengers.add(passenger);
+		}
+		try {
+			bookingId=bookingService.updateBooking(userId, bookingId, passengers);
+			System.out.println("\n"+environment.getProperty("API.BOOKING_UPDATED")+bookingId);
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
 	public void cancelBooking(String userId) {
-		//TODO
+		System.out.print("\nEnter Booking Id: ");
+		Integer bookingId=sc.nextInt();
+		try {
+			bookingId=bookingService.cancelBooking(userId, bookingId);
+			System.out.println("\n"+environment.getProperty("API.BOOKING_CANCELLED")+bookingId);
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 
 }
