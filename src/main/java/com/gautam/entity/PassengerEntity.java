@@ -22,9 +22,8 @@ public class PassengerEntity {
 	@Column(name="last_name")
 	private String lName;
 	
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name="seat_no")
-	private Integer seat;
+	private String seat;
 
 	public Integer getPassengerId() {
 		return passengerId;
@@ -50,11 +49,11 @@ public class PassengerEntity {
 		this.lName = lName;
 	}
 
-	public Integer getSeat() {
+	public String getSeat() {
 		return seat;
 	}
 
-	public void setSeat(Integer seat) {
+	public void setSeat(String seat) {
 		this.seat = seat;
 	}
 	

@@ -100,6 +100,7 @@ public class FlightDAOImpl implements FlightDAO {
 			PassengerEntity pEntity=new PassengerEntity();
 			pEntity.setfName(p.getfName());
 			pEntity.setlName(p.getlName());
+			pEntity.setSeat(p.getSeat());
 			pEntities.add(pEntity);
 		}
 		bookingEntity.setPassengers(pEntities);
@@ -152,10 +153,11 @@ public class FlightDAOImpl implements FlightDAO {
 		flightEntity.setSeatMap(seatMap);
 		Set<PassengerEntity> pEntities=new LinkedHashSet<PassengerEntity>();
 		for(Passenger p : passengers) {
-			PassengerEntity pEntitity=new PassengerEntity();
-			pEntitity.setfName(p.getfName());
-			pEntitity.setlName(p.getlName());
-			pEntities.add(pEntitity);
+			PassengerEntity pEntity=new PassengerEntity();
+			pEntity.setfName(p.getfName());
+			pEntity.setlName(p.getlName());
+			pEntity.setSeat(p.getSeat());
+			pEntities.add(pEntity);
 		}
 		bookingEntity.setPassengers(pEntities);
 		bookingEntity.setAmount(amount);

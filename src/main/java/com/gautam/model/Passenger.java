@@ -5,7 +5,7 @@ public class Passenger {
 	private Integer passengerId;
 	private String fName;
 	private String lName;
-	private Integer seat;
+	private String seat;
 	
 	public Integer getPassengerId() {
 		return passengerId;
@@ -25,10 +25,10 @@ public class Passenger {
 	public void setlName(String lName) {
 		this.lName = lName;
 	}
-	public Integer getSeat() {
+	public String getSeat() {
 		return seat;
 	}
-	public void setSeat(Integer seat) {
+	public void setSeat(String seat) {
 		this.seat = seat;
 	}
 	

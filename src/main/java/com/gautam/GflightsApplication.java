@@ -307,6 +307,8 @@ public class GflightsApplication implements CommandLineRunner {
 			passenger.setfName(sc.next());
 			System.out.print("Enter Passanger"+i+" Last Name: ");
 			passenger.setlName(sc.next());
+			System.out.print("Enter Seat No: ");
+			passenger.setSeat(sc.next());
 			passengers.add(passenger);
 		}
 		try {
@@ -329,6 +331,8 @@ public class GflightsApplication implements CommandLineRunner {
 			passenger.setfName(sc.next());
 			System.out.print("Enter Passanger"+i+" Last Name: ");
 			passenger.setlName(sc.next());
+			System.out.print("Enter Seat No: ");
+			passenger.setSeat(sc.next());
 			passengers.add(passenger);
 		}
 		try {
