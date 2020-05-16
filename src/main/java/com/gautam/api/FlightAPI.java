@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ import com.gautam.service.UserService;
 
 @RestController
 @RequestMapping(value="/flight")
+@CrossOrigin(origins="http://localhost:3000")
 public class FlightAPI {
 
 	@Autowired
@@ -137,17 +139,17 @@ public class FlightAPI {
 		}
 	}
 	
-	@PutMapping(value="/booking/{userId}")
-	public ResponseEntity<String> bookHotel(@PathVariable String userId, @RequestBody Booking booking) throws Exception {
-		try {
-			Integer bookingId=bookingService.bookFlight(userId, booking.getSource(), booking.getDestination(), booking.getDoj(), booking.getFlightId(), booking.getPassengers());
-			String message=environment.getProperty("API.BOOKING_SUCCESS")+bookingId;
-			ResponseEntity<String> response=new ResponseEntity<String>(message, HttpStatus.CREATED);
-			return response;
-		} catch(Exception e) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, environment.getProperty(e.getMessage()), e);
-		}
-	}
+//	@PutMapping(value="/booking/{userId}")
+//	public ResponseEntity<String> bookHotel(@PathVariable String userId, @RequestBody Booking booking) throws Exception {
+//		try {
+//			Integer bookingId=bookingService.bookFlight(userId, booking.getSource(), booking.getDestination(), booking.getDoj(), booking.getFlightId(), booking.getPassengers());
+//			String message=environment.getProperty("API.BOOKING_SUCCESS")+bookingId;
+//			ResponseEntity<String> response=new ResponseEntity<String>(message, HttpStatus.CREATED);
+//			return response;
+//		} catch(Exception e) {
+//			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, environment.getProperty(e.getMessage()), e);
+//		}
+//	}
 	
 	@PutMapping(value="/booking/{userId}/{bookingId}")
 	public ResponseEntity<String> updateBooking(@PathVariable String userId, @PathVariable Integer bookingId, @RequestBody Booking booking) throws Exception {

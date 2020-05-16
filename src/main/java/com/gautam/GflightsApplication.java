@@ -1,9 +1,13 @@
 package com.gautam;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -15,8 +19,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.core.env.Environment;
 
 import com.gautam.model.Booking;
+import com.gautam.model.FinalFlight;
 import com.gautam.model.Flight;
 import com.gautam.model.Passenger;
+import com.gautam.model.Rout;
 import com.gautam.model.User;
 import com.gautam.service.AdminService;
 import com.gautam.service.BookingService;
@@ -83,19 +89,78 @@ public class GflightsApplication implements CommandLineRunner {
 	}
 	
 	public void addFlight() {
-		Flight flight=new Flight();
-		System.out.print("\nEnter Flight Id: ");
-		flight.setFlightId(sc.next());
-		System.out.print("Enter Flight Name: ");
-		flight.setFlightName(sc.next());
+		Flight flight = new Flight();
+		
+		System.out.print("\nEnter Flight Number: ");
+		flight.setFlightNo(sc.next());
+		
+		System.out.print("Enter Vendor Name: ");
+		flight.setVendor(sc.next());
+		
 		LocalDate today=LocalDate.now();
 		Map<LocalDate, Integer> seatMap=new LinkedHashMap<LocalDate, Integer>();
+		System.out.print("Enter Number of Seats: ");
+		Integer seats=sc.nextInt();
+		flight.setTotalSeats(seats);
 		for(int i=0;i<365;i++) {
-			seatMap.put(today.plusDays(i), 150);
+			seatMap.put(today.plusDays(i), seats);
 		}
 		flight.setSeatMap(seatMap);
-		System.out.print("Enter Base Fare: ");
-		flight.setBaseFare(sc.nextDouble());
+		
+		List<Rout> routes = new ArrayList<Rout>();
+		for(int j=0;j<2;j++) {
+			if(j==0) System.out.println("\nEnter Up Route Details... ");
+			else System.out.println("\nEnter Down Route Details: ");
+			Rout route = new Rout();
+			System.out.print("Enter Number of Stopies: ");
+			int n = sc.nextInt();				
+			List<String> stopies = new ArrayList<String>();
+			System.out.print("Enter Name Of Stopies: ");
+			for(int i=0;i<n;i++) {
+				stopies.add(sc.next());
+			}
+			route.setLocation(stopies);
+			
+			System.out.print("Enter Arrival Timing: ");
+			List<LocalTime> arrivalTime = new ArrayList<LocalTime>();
+			for(int i=0;i<n;i++) {
+				arrivalTime.add(LocalTime.parse(sc.next()));
+			}
+			route.setArrivalTime(arrivalTime);
+	
+			System.out.print("Enter Departure Timing: ");
+			List<LocalTime> deptTime = new ArrayList<LocalTime>();
+			for(int i=0;i<n;i++) {
+				deptTime.add(LocalTime.parse(sc.next()));
+			}
+			route.setDeptTime(deptTime);
+			
+			System.out.print("Enter Distance from Starting Journey: ");
+			List<Integer> dist = new ArrayList<Integer>();
+			for(int i=0;i<n;i++) {
+				dist.add(sc.nextInt());
+			}	
+			route.setDist(dist);
+			
+			System.out.print("Enter Base Fare: ");
+			List<Double> baseFare = new ArrayList<Double>();
+			for(int i=0;i<n;i++) {
+				baseFare.add(sc.nextDouble());
+			}	
+			route.setBaseFare(baseFare);
+			routes.add(route);
+		}
+		flight.setRout(routes);
+		
+		System.out.print("Enter Number of Schedule day: ");
+		int y=sc.nextInt();
+		List<DayOfWeek> day = new ArrayList<DayOfWeek>();
+		System.out.print("Enter Schedued Day(1-7): ");
+		for(int i=0;i<y;i++) {
+			day.add(DayOfWeek.of(sc.nextInt()));
+		}
+		flight.setDayList(day);
+		
 		try {
 			String flightId=flightService.addFlight(flight);
 			System.out.println("\n"+environment.getProperty("API.FLIGHT_ADDED")+flightId);
@@ -106,21 +171,33 @@ public class GflightsApplication implements CommandLineRunner {
 	
 	public void getFlights() {
 		try {
-			Set<Flight> flights=flightService.getFlights();
-			int i=1;
-			for(Flight flight : flights) {
-				System.out.println("\nFlight"+i+" Details...");
-				System.out.println("Flight Id: "+flight.getFlightId());
-				System.out.println("Flight Name: "+flight.getFlightName());
-				System.out.println("Available Seats: ");
-				Map<LocalDate, Integer> seatMap=flight.getSeatMap();
-				if(seatMap!=null) {
-					for(LocalDate key : seatMap.keySet()) {
-						System.out.println(key+" "+seatMap.get(key));
-					}
+			Set<Flight> flightList = flightService.getFlights();
+			for(Flight fl : flightList) {
+				System.out.println("\nFlight No: "+fl.getFlightNo());
+				System.out.println("Vendor Name: "+fl.getVendor());
+				System.out.println("Seat Map: ");
+				Map<LocalDate, Integer> seatMap=fl.getSeatMap();
+				for(LocalDate key : seatMap.keySet()) {
+					System.out.println("DOJ: "+key+"\tAvailable Seats: "+seatMap.get(key));
 				}
-				System.out.println("Base Fare: "+flight.getBaseFare());
-				i++;
+				
+				int i=1;
+				for(Rout route : fl.getRout()) {
+					System.out.println("Route"+i+": ");
+					List<String> loc=route.getLocation();
+					for(int j=0;j<loc.size();j++) {
+						System.out.println("Stop: "+loc.get(j)+"\tArrival Time: "+route.getArrivalTime().get(j)
+								+"\tDeparture Time: "+route.getDeptTime().get(j)+"\tDistance: "+route.getDist().get(j)+"km"
+								+"\tBase Fare: "+route.getBaseFare().get(j));
+					}
+					i++;
+				}
+				
+				System.out.println("Running Days: ");
+				for(DayOfWeek day: fl.getDayList()) {
+					System.out.print(day+"\t");
+				}
+				System.out.println();
 			}
 		} catch(Exception e) {
 			System.out.println("\n"+environment.getProperty(e.getMessage()));
@@ -132,7 +209,13 @@ public class GflightsApplication implements CommandLineRunner {
 	}
 	
 	public void removeFlight() {
-		//TODO
+		try {
+			System.out.print("\nEnter Flight No: ");
+			String fNo=flightService.removeFlight(sc.next());
+			System.out.println("\n"+environment.getProperty("API.FLIGHT_REMOVED")+fNo);
+		} catch(Exception e) {
+			System.out.println("\n"+environment.getProperty(e.getMessage()));
+		}
 	}
 	
 	public void userLogin() {
@@ -173,17 +256,16 @@ public class GflightsApplication implements CommandLineRunner {
 			id=userService.validateUser(id, password);
 			System.out.println("\n"+environment.getProperty("API.USER_LOGIN_SUCCESS")+id);
 			while(true) {
-				System.out.println("\nPlease Enter...\n1.) User Details\n2.) Update Name\n3.) Update Password\n4.) Recharge Wallet\n5.) Search Flight\n6.) Book Flight\n7.) Update Booking\n8.) Cancel Booking\n0.) Log Out");
+				System.out.println("\nPlease Enter...\n1.) User Details\n2.) Update Name\n3.) Update Password\n4.) Recharge Wallet\n5.) Search & Book Flight\n6.) Update Booking\n7.) Cancel Booking\n0.) Log Out");
 				int opt=sc.nextInt();
 				if(opt==0) return;
 				else if(opt==1) userDetails(id);
 				else if(opt==2) updateName(id);
 				else if(opt==3) updatePassword(id);
 				else if(opt==4) rechargeWallet(id);
-				else if(opt==5) searchFlight();
-				else if(opt==6) bookFlight(id);
-				else if(opt==7) updateBooking(id);
-				else if(opt==8) cancelBooking(id);
+				else if(opt==5) searchFlight(id);
+				else if(opt==6) updateBooking(id);
+				else if(opt==7) cancelBooking(id);
 				else System.out.println("\n"+environment.getProperty("UI.INVALID_OPTION"));
 			}
 		} catch(Exception e) {
@@ -205,10 +287,8 @@ public class GflightsApplication implements CommandLineRunner {
 				System.out.println("Booking Id: "+booking.getBookingId());
 				System.out.println("Flight Id: "+booking.getFlightId());
 				System.out.println("Flight Name: "+booking.getFlightName());
-				System.out.println("Source: "+booking.getSource());
-				System.out.println("Departure Time: "+booking.getDeparture());
-				System.out.println("Destination: "+booking.getDestination());
-				System.out.println("Arrival Time: "+booking.getArrival());
+				System.out.println("Source: "+booking.getSource()+"\tDeparture Time: "+booking.getDeparture());
+				System.out.println("Destination: "+booking.getDestination()+"\tArrival Time: "+booking.getArrival());
 				System.out.println("Date of Journey: "+booking.getDoj());
 				System.out.println("Booked On: "+booking.getBookedOn());
 				System.out.println("Amount: "+booking.getAmount());
@@ -263,57 +343,53 @@ public class GflightsApplication implements CommandLineRunner {
 		}
 	}
 	
-	public void searchFlight() {
-		//TODO
-		try {
-			Set<Flight> flights=flightService.getFlights();
-			int i=1;
-			for(Flight flight : flights) {
-				System.out.println("\nFlight"+i+" Details...");
-				System.out.println("Flight Id: "+flight.getFlightId());
-				System.out.println("Flight Name: "+flight.getFlightName());
-				System.out.println("Available Seats: ");
-				Map<LocalDate, Integer> seatMap=flight.getSeatMap();
-				if(seatMap!=null) {
-					for(LocalDate key : seatMap.keySet()) {
-						System.out.println(key+" "+seatMap.get(key));
-					}
-				}
-				System.out.println("Base Fare: "+flight.getBaseFare());
-				i++;
-			}
-		} catch(Exception e) {
-			System.out.println("\n"+environment.getProperty(e.getMessage()));
-		}
-	}
-	
-	public void bookFlight(String userId) {
+	public void searchFlight(String userId) {
 		System.out.print("\nEnter Source: ");
 		String source=sc.next();
 		System.out.print("Enter Destination: ");
-		String destination=sc.next();
+		String dest=sc.next();
 		System.out.print("Enter Date of Journey: ");
 		String s=sc.next();
 		DateTimeFormatter formatter=DateTimeFormatter.ofPattern("dd/MM/yy");
 		LocalDate doj= LocalDate.parse(s, formatter);
-		System.out.print("Enter Flight Id: ");
-		String flightId=sc.next();
-		System.out.print("Enter Number of Passangers: ");
-		int n=sc.nextInt();
-		Set<Passenger> passengers=new LinkedHashSet<Passenger>();
-		for(int i=1;i<=n;i++) {
-			Passenger passenger=new Passenger();
-			System.out.print("Enter Passanger"+i+" First Name: ");
-			passenger.setfName(sc.next());
-			System.out.print("Enter Passanger"+i+" Last Name: ");
-			passenger.setlName(sc.next());
-			System.out.print("Enter Seat No: ");
-			passenger.setSeat(sc.next());
-			passengers.add(passenger);
-		}
 		try {
-			Integer bookingId=bookingService.bookFlight(userId, source, destination, doj, flightId, passengers);
-			System.out.println("\n"+environment.getProperty("API.BOOKING_SUCCESS")+bookingId);
+			List<FinalFlight> flightList = flightService.searchFlights(doj, source, dest);
+			for(FinalFlight fl : flightList) {
+				System.out.println("\nFlight No: "+fl.getFlightNo());
+				System.out.println("Vendor Name: "+fl.getVendor());
+				System.out.println("DOJ: "+fl.getDateOfJourney()+"\tAvailable Seats: "+fl.getSeat());
+				System.out.println("Source: "+fl.getSource()+"\tDeparture Time: "+fl.getDepaTime());
+				System.out.println("Destination: "+fl.getDest()+"\t Arrival Time: "+fl.getArriTime());
+				System.out.println("No of Stops: "+fl.getNoOfstops()+"\tTotal Distance: "+fl.getDistance()+"km");
+				System.out.println("Fare: "+fl.getFare());
+			}
+			System.out.print("\nEnter Flight No to Book: ");
+			String fNo=sc.next();
+			FinalFlight sFlight=null;
+			for(FinalFlight fl : flightList) {
+				if(fNo.equals(fl.getFlightNo())) {
+					sFlight=fl;
+					break;
+				}
+			}
+			if(sFlight==null) System.out.println("\n"+environment.getProperty("API.INVALID_SELECTION"));
+			else {
+				System.out.print("Enter Number of Passangers: ");
+				int n=sc.nextInt();
+				Set<Passenger> passengers=new LinkedHashSet<Passenger>();
+				for(int i=1;i<=n;i++) {
+					Passenger passenger=new Passenger();
+					System.out.print("Enter Passanger"+i+" First Name: ");
+					passenger.setfName(sc.next());
+					System.out.print("Enter Passanger"+i+" Last Name: ");
+					passenger.setlName(sc.next());
+					System.out.print("Enter Seat No: ");
+					passenger.setSeat(sc.next());
+					passengers.add(passenger);
+				}
+				Integer bookingId=bookingService.bookFlight(userId, sFlight, passengers);
+				System.out.println("\n"+environment.getProperty("API.BOOKING_SUCCESS")+bookingId);
+			}
 		} catch(Exception e) {
 			System.out.println("\n"+environment.getProperty(e.getMessage()));
 		}

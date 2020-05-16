@@ -1,8 +1,11 @@
 package com.gautam.dao;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,9 +21,12 @@ import org.springframework.stereotype.Repository;
 import com.gautam.entity.BookingEntity;
 import com.gautam.entity.FlightEntity;
 import com.gautam.entity.PassengerEntity;
+import com.gautam.entity.RoutEntity;
 import com.gautam.model.Booking;
+import com.gautam.model.FinalFlight;
 import com.gautam.model.Flight;
 import com.gautam.model.Passenger;
+import com.gautam.model.Rout;
 
 @Repository(value="flightDAO")
 public class FlightDAOImpl implements FlightDAO {
@@ -30,69 +36,207 @@ public class FlightDAOImpl implements FlightDAO {
 	
 	@Override
 	public String addFlight(Flight flight) throws Exception {
-		FlightEntity flightEntity=entityManager.find(FlightEntity.class, flight.getFlightId());
+		FlightEntity flightEntity = entityManager.find(FlightEntity.class,flight.getFlightNo());
 		String flightId=null;
 		if(flightEntity==null) {
-			flightEntity=new FlightEntity();
-			flightEntity.setFlightId(flight.getFlightId());
-			flightEntity.setFlightName(flight.getFlightName());
-			
+			flightEntity = new FlightEntity();
+			flightEntity.setFlightNo(flight.getFlightNo());
+			flightEntity.setVendor(flight.getVendor());
+			flightEntity.setTotalSeats(flight.getTotalSeats());
 			flightEntity.setSeatMap(flight.getSeatMap());
-			
-			flightEntity.setBaseFare(flight.getBaseFare());
+			List<Rout> routes=flight.getRout();
+			List<RoutEntity> listRoutEntity=new ArrayList<RoutEntity>();
+			for(Rout rout : routes) {
+				RoutEntity routEntity = new RoutEntity();
+				routEntity.setLocation(rout.getLocation());
+				routEntity.setArrivalTime(rout.getArrivalTime());
+				routEntity.setDeptTime(rout.getDeptTime());;
+				routEntity.setDist(rout.getDist());
+				routEntity.setBaseFare(rout.getBaseFare());
+				listRoutEntity.add(routEntity);
+			}
+			flightEntity.setRoutEntity(listRoutEntity);
+			flightEntity.setDayList(flight.getDayList());
 			entityManager.persist(flightEntity);
-			flightId=flightEntity.getFlightId();
+			flightId=flightEntity.getFlightNo();
 		}
 		return flightId;
 	}
 	
 	@Override
 	public Set<Flight> getFlights() throws Exception {
-		String queryString="SELECT f FROM FlightEntity f";
+		String queryString = "select f.flightNo from FlightEntity f";
 		Query query=entityManager.createQuery(queryString);
-		List<FlightEntity> flightEntities=query.getResultList();
-		Set<Flight> flights=new LinkedHashSet<Flight>();
-		for(FlightEntity flightEntity : flightEntities) {
-			Flight flight=new Flight();
-			flight.setFlightId(flightEntity.getFlightId());
-			flight.setFlightName(flightEntity.getFlightName());
+		List<String> flightNoList = query.getResultList();
+		
+		Set<Flight> flightList = new HashSet<Flight>();
+		for(String flightNo: flightNoList) {
+			FlightEntity fEntity = entityManager.find(FlightEntity.class, flightNo);
+			Flight flight = new Flight();
 			
-			Map<LocalDate, Integer> seatMap1=flightEntity.getSeatMap();
+			flight.setFlightNo(flightNo);
+			flight.setVendor(fEntity.getVendor());
+			flight.setTotalSeats(fEntity.getTotalSeats());
+
+			Map<LocalDate, Integer> seatMap1=fEntity.getSeatMap();
 			Map<LocalDate, Integer> seatMap=new LinkedHashMap<LocalDate, Integer>();
 			for(LocalDate key : seatMap1.keySet()) {
 				seatMap.put(key, seatMap1.get(key));
 			}
 			flight.setSeatMap(seatMap);
 			
-			flight.setBaseFare(flightEntity.getBaseFare());
-			flights.add(flight);
+			List<Rout> routList = new ArrayList<Rout>();
+			for(RoutEntity rEntity : fEntity.getRoutEntity()) {
+				Rout rout = new Rout();
+				
+				List<String> loc = new ArrayList<String>();
+				for(String l : rEntity.getLocation()) {
+					loc.add(l);
+				}
+				rout.setLocation(loc);
+				
+				List<LocalTime> arrivalTime = new ArrayList<LocalTime>();
+				for(LocalTime aTime : rEntity.getArrivalTime()) {
+					arrivalTime.add(aTime);
+				}
+				rout.setArrivalTime(arrivalTime);;
+				
+				List<LocalTime> deptTime = new ArrayList<LocalTime>();
+				for(LocalTime dTime : rEntity.getDeptTime()) {
+					deptTime.add(dTime);
+				}
+				rout.setDeptTime(deptTime);
+				
+				List<Integer> dis = new ArrayList<Integer>();
+				for(Integer d : rEntity.getDist()) {
+					dis.add(d);
+				}
+				rout.setDist(dis);
+				
+				List<Double> baseFare = new ArrayList<Double>();
+				for(Double fare : rEntity.getBaseFare()) {
+					baseFare.add(fare);
+				}
+				rout.setBaseFare(baseFare);
+				
+				routList.add(rout);
+			}
+			flight.setRout(routList);
+
+			List<DayOfWeek> day = new ArrayList<DayOfWeek>();
+			for(DayOfWeek d : fEntity.getDayList()) {
+				day.add(d);
+			}
+			flight.setDayList(day);
+			
+			flightList.add(flight);
 		}
-		return flights;
+		return flightList;
 	}
 	
 	@Override
-	public Double calculateAmount(String flightId, LocalDate doj, Integer noOfPassengers) throws Exception {
+	public List<Flight> searchFlights(DayOfWeek day, String source, String dest) throws Exception{
+		String queryString = "select f.flightNo from FlightEntity f";
+		Query query = entityManager.createQuery(queryString);
+		List<String> fIdList = query.getResultList();
+
+		List<Flight> flightList = new ArrayList<Flight>();
+		for(String fId : fIdList) {
+			Flight flight =  new Flight();
+			FlightEntity fEntity = entityManager.find(FlightEntity.class, fId);
+			flight.setFlightNo(fEntity.getFlightNo());
+			flight.setVendor(fEntity.getVendor());
+			flight.setTotalSeats(fEntity.getTotalSeats());
+			Map<LocalDate, Integer> seatMap1=fEntity.getSeatMap();
+			Map<LocalDate, Integer> seatMap=new LinkedHashMap<LocalDate, Integer>();
+			for(LocalDate key : seatMap1.keySet()) {
+				seatMap.put(key, seatMap1.get(key));
+			}
+			flight.setSeatMap(seatMap);
+			List<DayOfWeek> days = new ArrayList<DayOfWeek>();
+			for(DayOfWeek d : fEntity.getDayList()) {
+				days.add(d);
+			}
+			flight.setDayList(days);
+			int flag=0;
+			if(days.contains(day)) {
+				List<Rout> routList = new ArrayList<Rout>();
+				for(RoutEntity rEntity : fEntity.getRoutEntity()) {
+					List<String> loc = new ArrayList<String>();
+					for(String l : rEntity.getLocation()) {
+						loc.add(l);
+					}
+					int s=loc.indexOf(source);
+					int d=loc.indexOf(dest);
+					if(s!=-1 && d!=-1 && s<d) {
+						flag=1;
+						Rout rout = new Rout();
+						rout.setLocation(loc);
+						
+						List<LocalTime> arrivalTime = new ArrayList<LocalTime>();
+						for(LocalTime aTime : rEntity.getArrivalTime()) {
+							arrivalTime.add(aTime);
+						}
+						rout.setArrivalTime(arrivalTime);;
+						
+						List<LocalTime> deptTime = new ArrayList<LocalTime>();
+						for(LocalTime dTime : rEntity.getDeptTime()) {
+							deptTime.add(dTime);
+						}
+						rout.setDeptTime(deptTime);;
+						
+						List<Integer> distance = new ArrayList<Integer>();
+						for(Integer dist : rEntity.getDist()) {
+							distance.add(dist);
+						}
+						rout.setDist(distance);
+						
+						List<Double> baseFare = new ArrayList<Double>();
+						for(Double fare : rEntity.getBaseFare()) {
+							baseFare.add(fare);
+						}
+						rout.setBaseFare(baseFare);
+						
+						routList.add(rout);
+					}
+				}
+				flight.setRout(routList);
+			}
+			flightList.add(flight);
+		}
+		return flightList;
+	}
+	
+	@Override
+	public String removeFlight(String flightNo) throws Exception{
+		FlightEntity flightEntity = entityManager.find(FlightEntity.class, flightNo);
+		String fNo=null;
+		if(flightEntity!=null) {
+			entityManager.remove(flightEntity);
+			fNo=flightEntity.getFlightNo();
+		}
+		return fNo;
+	}
+	
+	@Override
+	public Boolean validateBooking(String flightId, LocalDate doj, Integer noOfPassengers) throws Exception {
 		FlightEntity flightEntity=entityManager.find(FlightEntity.class, flightId);
 		if(flightEntity==null) throw new Exception("DAO.FLIGHT_NOT_FOUND");
-		Map<LocalDate, Integer> seatMap=flightEntity.getSeatMap();
-		Double amount=null;
-		if(noOfPassengers<=seatMap.get(doj)) {
-			amount=flightEntity.getBaseFare()*noOfPassengers;
-		}
-		return amount;
+		if(noOfPassengers<=flightEntity.getSeatMap().get(doj)) return true;
+		return false;
 	}
 	
 	@Override
-	public Integer bookFlight(String source, String destination, LocalDate doj, String flightId, Set<Passenger> passengers, Double amount) throws Exception {
-		FlightEntity flightEntity=entityManager.find(FlightEntity.class, flightId);
+	public Integer bookFlight(FinalFlight fFlight, Set<Passenger> passengers, Double amount) throws Exception {
+		FlightEntity flightEntity=entityManager.find(FlightEntity.class, fFlight.getFlightNo());
 		BookingEntity bookingEntity=new BookingEntity();
-		bookingEntity.setFlightId(flightEntity.getFlightId());
-		bookingEntity.setFlightName(flightEntity.getFlightName());
-		bookingEntity.setSource(source);
-		bookingEntity.setDeparture(LocalTime.now());
-		bookingEntity.setDestination(destination);
-		bookingEntity.setArrival(LocalTime.now().plusHours(2));
-		bookingEntity.setDoj(doj);
+		bookingEntity.setFlightId(flightEntity.getFlightNo());
+		bookingEntity.setFlightName(flightEntity.getVendor());
+		bookingEntity.setSource(fFlight.getSource());
+		bookingEntity.setDeparture(fFlight.getDepaTime());
+		bookingEntity.setDestination(fFlight.getDest());
+		bookingEntity.setArrival(fFlight.getArriTime());
+		bookingEntity.setDoj(fFlight.getDateOfJourney());
 		bookingEntity.setBookedOn(LocalDateTime.now());
 		bookingEntity.setAmount(amount);
 		Set<PassengerEntity> pEntities=new LinkedHashSet<PassengerEntity>();
@@ -106,7 +250,7 @@ public class FlightDAOImpl implements FlightDAO {
 		bookingEntity.setPassengers(pEntities);
 		entityManager.persist(bookingEntity);
 		Map<LocalDate, Integer> seatMap=flightEntity.getSeatMap();
-		seatMap.put(doj, seatMap.get(doj)-passengers.size());
+		seatMap.put(fFlight.getDateOfJourney(), seatMap.get(fFlight.getDateOfJourney())-passengers.size());
 		flightEntity.setSeatMap(seatMap);
 		return bookingEntity.getBookingId();
 	}
@@ -170,10 +314,12 @@ public class FlightDAOImpl implements FlightDAO {
 		Integer bId=null;
 		if(bookingEntity!=null) {
 			FlightEntity flightEntity=entityManager.find(FlightEntity.class, bookingEntity.getFlightId());
-			Map<LocalDate, Integer> seatMap=flightEntity.getSeatMap();
-			LocalDate doj=bookingEntity.getDoj();
-			seatMap.put(doj, seatMap.get(doj)+bookingEntity.getPassengers().size());
-			flightEntity.setSeatMap(seatMap);
+			if(flightEntity!=null) {
+				Map<LocalDate, Integer> seatMap=flightEntity.getSeatMap();
+				LocalDate doj=bookingEntity.getDoj();
+				seatMap.put(doj, seatMap.get(doj)+bookingEntity.getPassengers().size());
+				flightEntity.setSeatMap(seatMap);
+			}
 			entityManager.remove(bookingEntity);
 			bId=bookingEntity.getBookingId();
 		}

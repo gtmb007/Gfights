@@ -1,6 +1,5 @@
 package com.gautam.service;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gautam.model.Booking;
+import com.gautam.model.FinalFlight;
 import com.gautam.model.Passenger;
 
 @Service(value="bookingService")
@@ -21,16 +21,18 @@ public class BookingServiceImpl implements BookingService {
 	private UserService userService;
 	
 	@Override
-	public Integer bookFlight(String userId, String source, String destination, LocalDate doj, String flightId, Set<Passenger> passengers) throws Exception {
+	public Integer bookFlight(String userId, FinalFlight fFlight, Set<Passenger> passengers) throws Exception {
 		Integer bookingId=null;
-		Double amount=flightService.calculateAmount(flightId, doj, passengers.size());
+		if(flightService.validateBooking(fFlight.getFlightNo(), fFlight.getDateOfJourney(), passengers.size())) {
+		Double amount=fFlight.getFare()*passengers.size();
 		userService.payment(userId, amount);
 		try {
-			bookingId=flightService.bookFlight(source, destination, doj, flightId, passengers, amount);
+			bookingId=flightService.bookFlight(fFlight, passengers, amount);
 			userService.addBooking(userId, bookingId);
 		} catch(Exception e) {
 			userService.rechargeWallet(userId, amount);
 			throw new Exception(e.getMessage());
+		}
 		}
 		return bookingId;
 	}
@@ -38,14 +40,17 @@ public class BookingServiceImpl implements BookingService {
 	@Override
 	public Integer updateBooking(String userId, Integer bookingId, Set<Passenger> passengers) throws Exception {
 		Booking booking=flightService.getBooking(bookingId);
-		Double newAmount=flightService.calculateAmount(booking.getFlightId(), booking.getDoj(), passengers.size()-booking.getPassengers().size());
-		userService.payment(userId, newAmount);
-		Double amount=flightService.calculateAmount(booking.getFlightId(), booking.getDoj(), passengers.size());
-		try {
-			bookingId=flightService.updateBooking(bookingId, passengers, amount);
-		} catch(Exception e) {
-			userService.rechargeWallet(userId, newAmount);
-			throw new Exception(e.getMessage());
+		int n=booking.getPassengers().size();
+		if(flightService.validateBooking(booking.getFlightId(), booking.getDoj(), passengers.size()-n)) {
+			Double newAmount=(booking.getAmount()/n)*(passengers.size()-n);
+			userService.payment(userId, newAmount);
+			Double amount=(booking.getAmount()/n)*passengers.size();
+			try {
+				bookingId=flightService.updateBooking(bookingId, passengers, amount);
+			} catch(Exception e) {
+				userService.rechargeWallet(userId, newAmount);
+				throw new Exception(e.getMessage());
+			}
 		}
 		return bookingId;
 	}
